@@ -3,7 +3,6 @@ from flask_cors import CORS
 from decouple import config as decouple_config
 import datetime
 import numpy as np
-import pymysql
 
 # Configuración
 class Config:
