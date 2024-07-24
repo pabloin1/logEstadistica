@@ -91,7 +91,12 @@ class RecordModel:
                 resultset = cursor.fetchall()
                 
                 for row in resultset:
-                    temperatures.append(row[0])
+                    try:
+                        temperature = float(row[0])
+                        temperatures.append(temperature)
+                    except ValueError:
+                        # Ignorar valores que no se pueden convertir a float
+                        continue
                     
             connection.close()
             
@@ -100,7 +105,6 @@ class RecordModel:
             
             temperatures_array = np.array(temperatures, dtype=float)
             
-
             statistics = {
                 'mean': float(np.mean(temperatures_array)),
                 'median': float(np.median(temperatures_array)),
@@ -112,6 +116,27 @@ class RecordModel:
             return statistics
         except Exception as ex:
             raise Exception(f"Error calculating statistics: {ex}")
+    
+    @classmethod
+    def get_gas_levels(cls):
+        try:
+            connection = get_connection()
+            gas_levels = []
+            
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT gas_level, createdAt FROM record')
+                resultset = cursor.fetchall()
+                
+                for row in resultset:
+                    gas_levels.append({
+                        'gas_level': row[0],
+                        'createdAt': DateFormat.convert_date(row[1])
+                    })
+            
+            connection.close()
+            return gas_levels
+        except Exception as ex:
+            raise Exception(f"Error getting gas levels: {ex}")
 
 # Blueprints
 main = Blueprint('record_blueprint', __name__)
@@ -129,6 +154,14 @@ def get_temperature_statistics():
     try:
         statistics = RecordModel.get_temperature_statistics()
         return jsonify(statistics)
+    except Exception as ex:
+        return jsonify({'message': str(ex)}), 500
+
+@main.route('/gas-levels')
+def get_gas_levels():
+    try:
+        gas_levels = RecordModel.get_gas_levels()
+        return jsonify(gas_levels)
     except Exception as ex:
         return jsonify({'message': str(ex)}), 500
 
